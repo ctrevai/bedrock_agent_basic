@@ -1,0 +1,36 @@
+{
+  "name": "Python 3.12 AWS CLI",
+  "image": "python:latest",
+  "forwardPorts": [],
+  "features": {
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {},
+    "ghcr.io/devcontainers-contrib/features/aws-cdk:2": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/python:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "wayou.file-icons-mac",
+        "file-icons.file-icons",
+        "njpwerner.autodocstring",
+        "ms-python.autopep8",
+        "naumovs.color-highlight",
+        "ms-azuretools.vscode-docker",
+        "codezombiech.gitignore",
+        "ms-toolsai.jupyter",
+        "donjayamanne.python-extension-pack",
+        "redhat.vscode-yaml",
+        "mark-tucker.aws-cli-configure",
+        "amazonwebservices.amazon-q-vscode",
+        "ms-python.python"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": { "zsh": { "path": "/bin/zsh" } }
+      }
+    }
+  }
+}
