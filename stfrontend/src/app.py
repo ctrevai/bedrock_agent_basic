@@ -26,10 +26,17 @@ dataSourceId = "LUB3AW5OSA"
 knowledgeBaseId = "IBOHZTCRT4"
 knowledge_base_s3_bucket = "invoice-to-pay-kb"
 
-session = boto3.Session(region_name=region, profile_name='ctdev')
+# session = boto3.Session(region_name=region, profile_name='ctdev')
+session = boto3.Session(region_name=region)
 bedrock_client = session.client('bedrock')
 s3_client = session.client('s3')
 agent_client = session.client('bedrock-agent')
+
+approval_query = ''' If invoice amount is less than $100, the invoice is auto approved otherwise the invoice need manual approve.
+Check the invoice amount and answer the following question.
+what is the invoice amount?
+Is the invoice auto approve or manual approve?
+'''
 
 
 def session_generator():
@@ -81,24 +88,14 @@ def bedrock_agent(query, sessionId):
             region=region,
             body=json.dumps(agent_query)
         )
-        # print("response = " + str(response.content))
-        # final_response = json.loads(response.content)
-        # print("final_response = " + str(final_response))
 
         if response.status_code == 200:
             response_string = response.text
-            # for line in response.iter_lines():
-            #     try:
-            #         response_string += line.decode('utf-8')
-            #     except:
-            #         continue
-
-            # print("response_string = " + str(response_string))
 
             split_response = response_string.split(":message-type")
-            # print("split_response = " + str(split_response))
+
             last_response = split_response[-1]
-            # print("last_response = " + str(last_response))
+
             try:
                 encoded_last_response = last_response.split("\"")[3]
 
@@ -256,8 +253,17 @@ def main():
         st.session_state["previous_query"] = query
 
     if st.button("Submit"):
+        if "session_id" not in st.session_state:
+            st.session_state["session_id"] = session_generator()
         sessionId = st.session_state["session_id"]
         agent_response = bedrock_agent(query, sessionId)
+        st.session_state["previous_query"] = query
+
+    if st.button("Approval Qualification"):
+        if "session_id" not in st.session_state:
+            st.session_state["session_id"] = session_generator()
+        sessionId = st.session_state["session_id"]
+        agent_response = bedrock_agent(approval_query, sessionId)
         st.session_state["previous_query"] = query
 
     if agent_response is not None:
