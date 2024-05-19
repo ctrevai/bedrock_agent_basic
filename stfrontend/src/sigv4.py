@@ -6,9 +6,12 @@ from botocore.awsrequest import AWSRequest
 
 
 class SigV4HttpRequester:
+    # def __init__(self):
+    #     self.credentials = Session(
+    #         profile_name='ctdev').get_credentials().get_frozen_credentials()
+
     def __init__(self):
-        self.credentials = Session(
-            profile_name='ctdev').get_credentials().get_frozen_credentials()
+        self.credentials = Session().get_credentials().get_frozen_credentials()
 
     def send_signed_request(
         self,
