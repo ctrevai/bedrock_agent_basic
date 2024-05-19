@@ -12,7 +12,7 @@ import string
 st.title("Invoice to Pay AI Agent")
 st.subheader("Powered by Amazon Bedrock")
 st.info("This app is for Invoice to Pay Agent to showcase the AI capability to understand the uploaded pdf invoice and match the PO# with PO record. Policy document can defind the approval process that will be created by AI Agent.")
-dorje_logo = "dorje_logo.png"
+dorje_logo = "./dorje_logo.png"
 st.sidebar.image(dorje_logo, width=200, output_format='PNG')
 st.sidebar.subheader("Dorje AI demo")
 st.sidebar.info("This demo is powered by Dorje AI")
@@ -26,16 +26,17 @@ dataSourceId = "LUB3AW5OSA"
 knowledgeBaseId = "IBOHZTCRT4"
 knowledge_base_s3_bucket = "invoice-to-pay-kb"
 
-# session = boto3.Session(region_name=region, profile_name='ctdev')
+# export AWS_PROFILE='your_profile' for local test
 session = boto3.Session(region_name=region)
 bedrock_client = session.client('bedrock')
 s3_client = session.client('s3')
 agent_client = session.client('bedrock-agent')
 
-approval_query = ''' If invoice amount is less than $100, the invoice is auto approved otherwise the invoice need manual approve.
-Check the invoice amount and answer the following question.
-what is the invoice amount?
-Is the invoice auto approve or manual approve?
+approval_query = ''' 
+
+If invoice amount is less than $100, auto approve.
+If invoice amount is greater than $100, manual approve.
+
 '''
 
 
