@@ -21,9 +21,9 @@ region = 'us-east-1'
 modelID = 'amazon.titan-text-express-v1'
 
 agentId = "XSSIC35SEK"
-agentAliasId = "ZJ5MQ1V4FG"
-dataSourceId = "LUB3AW5OSA"
-knowledgeBaseId = "IBOHZTCRT4"
+agentAliasId = "LLGCKF4OII"
+dataSourceId = "GB8ECB68O5"
+knowledgeBaseId = "65RMT6TTOW"
 knowledge_base_s3_bucket = "invoice-to-pay-kb"
 
 # export AWS_PROFILE='your_profile' for local test
@@ -31,11 +31,15 @@ session = boto3.Session(region_name=region)
 bedrock_client = session.client('bedrock')
 s3_client = session.client('s3')
 agent_client = session.client('bedrock-agent')
+agent_client_runtime = session.client('bedrock-agent-runtime')
 
 approval_query = ''' 
 
+account payable policy are:
 If invoice amount is less than $100, auto approve.
-If invoice amount is greater than $100, manual approve.
+If invoice amount is greater than $101, manual approve.
+question:
+is this invoice get auto approve or manual approve?
 
 '''
 
@@ -95,11 +99,12 @@ def bedrock_agent(query, sessionId):
 
             split_response = response_string.split(":message-type")
 
-            last_response = split_response[-1]
+            last_response = split_response[-2]
+            # print(last_response)
 
             try:
                 encoded_last_response = last_response.split("\"")[3]
-
+                print(encoded_last_response)
                 if encoded_last_response == "citations":
                     # Find the start and end indices of the JSON content
                     start_index = last_response.find('{')
@@ -110,7 +115,8 @@ def bedrock_agent(query, sessionId):
 
                     try:
                         data = json.loads(json_content)
-                        final_response = data['attribution']['citations'][0]['generatedResponsePart']['textResponsePart']['text']
+                        # print(data)
+                        final_response = data['trace']['orchestrationTrace']['observation']['finalResponse']['text']
                     except json.decoder.JSONDecodeError as e:
                         print(f"JSON decoding error: {e}")
                     except KeyError as e:
@@ -126,33 +132,41 @@ def bedrock_agent(query, sessionId):
         return final_response
 
 
-def bedrock(query):
+def bedrock(query, sessionId):
     if query is not None:
-
-        query_text = {
-            "inputText": query
-        }
-
-        print("QUERY: " + query)
-        bedrock_url = f"https://bedrock-runtime.{
-            region}.amazonaws.com/model/{modelID}/invoke"
-        requester = SigV4HttpRequester()
-        response = requester.send_signed_request(
-            url=bedrock_url,
-            method='POST',
-            service='bedrock',
-            headers={
-                'content-type': 'application/json',
-                'accept': 'application/json'
-            },
-            region=region,
-            body=json.dumps(query_text)
+        response = agent_client_runtime.invoke_agent(
+            agentId=agentId,
+            agentAliasId=agentAliasId,
+            inputText=query,
+            enableTrace=True,
+            sessionId=sessionId
         )
+        print(response["completion"])
 
-        print("response = " + str(response))
-        response_json = json.loads(response.text)
-        print("response_json = " + str(response_json))
-        print(response_json['results'][0]['outputText'])
+        # for event in response["completion"]:
+        #     final_response = event.get("trace", {}).get("trace", {}).get("orchestrationTrace", {}).get(
+        #         "observation", {}).get("finalResponse", {}).get("text", "No final response found")
+        #     return final_response
+
+        for event in response["completion"]:
+            if event.get("trace").get("trace").get("orchestrationTrace").get("observation"):
+                if event.get("trace").get("trace").get("orchestrationTrace").get("observation").get("finalResponse"):
+                    return event.get("trace").get("trace").get("orchestrationTrace").get("observation").get("finalResponse").get("text")
+
+        # for event in response["completion"]:
+        #     chunk = event.get("trace")
+        #     if chunk:
+        #         trace = chunk.get("trace")
+        #         if trace:
+        #             # print(trace)
+        #             orches = trace.get("orchestrationTrace")
+        #             if orches:
+        #                 # print(orches)
+        #                 obs = orches.get("observation")
+        #                 if obs:
+        #                     final = obs.get("finalResponse")
+        #                     if final:
+        #                         return final.get("text")
 
 
 def update_knowledge_base(file_content, bucket_name, s3_file_name):
@@ -199,12 +213,13 @@ def check_ingestion_job_status():
                 job_status = response["ingestionJobSummaries"][0]["status"]
                 print(f"Ingestion Job Status: {job_status}")
                 st.write(f"Ingestion Job Status: {job_status}")
+            else:
+                st.write(
+                    f"Error: {response['ResponseMetadata']['HTTPStatusCode']}")
 
             if job_status == "COMPLETE":
                 break
-            else:
-                st.write(
-                    f"Error: {response.status_code} - {response.text}")
+
         except Exception as e:
             st.write(f"An error occurred: {e}")
 
@@ -250,25 +265,26 @@ def main():
             st.session_state["session_id"] = session_generator()
 
         sessionId = st.session_state["session_id"]
-        agent_response = bedrock_agent(query, sessionId)
+        agent_response = bedrock(query, sessionId)
         st.session_state["previous_query"] = query
 
     if st.button("Submit"):
         if "session_id" not in st.session_state:
             st.session_state["session_id"] = session_generator()
         sessionId = st.session_state["session_id"]
-        agent_response = bedrock_agent(query, sessionId)
+        agent_response = bedrock(query, sessionId)
         st.session_state["previous_query"] = query
 
     if st.button("Approval Qualification"):
         if "session_id" not in st.session_state:
             st.session_state["session_id"] = session_generator()
         sessionId = st.session_state["session_id"]
-        agent_response = bedrock_agent(approval_query, sessionId)
+        agent_response = bedrock(approval_query, sessionId)
         st.session_state["previous_query"] = query
 
     if agent_response is not None:
-        st.write("Agent's Response: " + agent_response)
+        printable = agent_response.replace("$", "\$")
+        st.write(f"Agent's Response: {printable}")
 
     # Invoice upload
     st.subheader("Invoice Agent - Invoice Upload")
