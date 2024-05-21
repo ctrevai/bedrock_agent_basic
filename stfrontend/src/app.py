@@ -1,6 +1,4 @@
 import streamlit as st
-from sigv4 import SigV4HttpRequester
-import json
 import boto3
 import base64
 import io
@@ -18,7 +16,6 @@ st.sidebar.subheader("Dorje AI demo")
 st.sidebar.info("This demo is powered by Dorje AI")
 
 region = 'us-east-1'
-modelID = 'amazon.titan-text-express-v1'
 
 agentId = "XSSIC35SEK"
 agentAliasId = "LLGCKF4OII"
@@ -69,10 +66,10 @@ def delete_previous_invoice():
             s3_client.delete_object(
                 Bucket=knowledge_base_s3_bucket, Key=object['Key'])
 
-# parse response from bedrock agent runtime for debuging
-
 
 def process_response(response):
+    # parse response from bedrock agent runtime for debuging
+
     print('\nprocess_response', response)
 
     completion = ''
