@@ -8,9 +8,14 @@ import string
 
 
 st.title("Invoice to Pay AI Agent")
-st.subheader("Powered by Amazon Bedrock")
-st.info("This app is for Invoice to Pay Agent to showcase the AI capability to understand the uploaded pdf invoice and match the PO# with PO record. Policy document can defind the approval process that will be created by AI Agent.")
-dorje_logo = "./dorje_logo.png"
+st.subheader("Overview/Introduction")
+st.info('''
+        This is a minimum viable product demo of Dorje's AI agent feature. With Dorje AI, users can create custom AI agents to assist with tasks like invoice processing, sales, and workflow optimization. \n
+        In this capability demo, we focus on the invoice processing use case, showcasing our agent's ability to interpret uploaded PDF invoices and extract key information in bulk, such as PO record matching, invoice amounts, and supplier details. \n
+        Try how our AI agent works through a simple chat prompt. Upload an invoice and ask the agent questions about it. \n
+        For the purpose of this demo, the approval qualification for invoices is set at $1000. Invoices below this amount will be auto-processed by the agent.
+        ''')
+dorje_logo = "./Dorje logo.svg"
 st.sidebar.image(dorje_logo, width=200, output_format='PNG')
 st.sidebar.subheader("Dorje AI demo")
 st.sidebar.info("This demo is powered by Dorje AI")
@@ -33,8 +38,8 @@ agent_client_runtime = session.client('bedrock-agent-runtime')
 approval_query = ''' 
 
 account payable policy are:
-If invoice amount is less than $100, auto approve.
-If invoice amount is greater than $101, manual approve.
+If invoice amount is less than $999, auto approve.
+If invoice amount is greater than $1000, manual approve.
 question:
 is this invoice get auto approve or manual approve?
 
@@ -227,39 +232,8 @@ def main():
     if not "valid_inputs_receieved" in st.session_state:
         st.session_state["valid_inputs_receieved"] = False
 
-    # Prompt input
-    st.subheader("Invoice Agent - Prompt Input")
-    query = st.text_input("Enter your query", value="",
-                          placeholder="Ask question about invoice", label_visibility="visible")
-    agent_response = None
-    if st.session_state.get("previous_query") != query and query != "":
-        if "session_id" not in st.session_state:
-            st.session_state["session_id"] = session_generator()
-
-        sessionId = st.session_state["session_id"]
-        agent_response = bedrock(query, sessionId)
-        st.session_state["previous_query"] = query
-
-    if st.button("Submit"):
-        if "session_id" not in st.session_state:
-            st.session_state["session_id"] = session_generator()
-        sessionId = st.session_state["session_id"]
-        agent_response = bedrock(query, sessionId)
-        st.session_state["previous_query"] = query
-
-    if st.button("Approval Qualification"):
-        if "session_id" not in st.session_state:
-            st.session_state["session_id"] = session_generator()
-        sessionId = st.session_state["session_id"]
-        agent_response = bedrock(approval_query, sessionId)
-        st.session_state["previous_query"] = query
-
-    if agent_response is not None:
-        printable = agent_response.replace("$", "\$")
-        st.write(f"Agent's Response: {printable}")
-
     # Invoice upload
-    st.subheader("Invoice Agent - Invoice Upload")
+    st.subheader("Step1: Upload Invoice")
     uploaded_file = st.file_uploader("Choose a file", type=["pdf"])
     if uploaded_file is not None:
         # print("uploaded invoice :" + str(uploaded_file))
@@ -279,6 +253,38 @@ def main():
             check_ingestion_job_status()
         else:
             show_pdf(uploaded_file)
+
+    # Prompt input
+    st.subheader("Step 2: Ask anything about your invoice")
+    query = st.text_input("Enter your query", value="",
+                          placeholder="Ask question about invoice", label_visibility="visible")
+    agent_response = None
+    if st.session_state.get("previous_query") != query and query != "":
+        if "session_id" not in st.session_state:
+            st.session_state["session_id"] = session_generator()
+
+        sessionId = st.session_state["session_id"]
+        agent_response = bedrock(query, sessionId)
+        st.session_state["previous_query"] = query
+
+    if st.button("Submit"):
+        if "session_id" not in st.session_state:
+            st.session_state["session_id"] = session_generator()
+        sessionId = st.session_state["session_id"]
+        agent_response = bedrock(query, sessionId)
+        st.session_state["previous_query"] = query
+
+    if st.button("Check Invoice Qualification"):
+        if "session_id" not in st.session_state:
+            st.session_state["session_id"] = session_generator()
+        sessionId = st.session_state["session_id"]
+        agent_response = bedrock(approval_query, sessionId)
+        st.session_state["previous_query"] = query
+
+    if agent_response is not None:
+        printable = agent_response.replace("$", "\$")
+        st.write(f"Agent's Response:")
+        st.write(f"{printable}")
 
 
 if __name__ == "__main__":
