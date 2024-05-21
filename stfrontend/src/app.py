@@ -69,71 +69,62 @@ def delete_previous_invoice():
             s3_client.delete_object(
                 Bucket=knowledge_base_s3_bucket, Key=object['Key'])
 
+# parse response from bedrock agent runtime for debuging
 
-def bedrock_agent(query, sessionId):
-    if query is not None:
 
-        agent_query = {
-            "inputText": query,
-            "enableTrace": True,
-        }
+def process_response(response):
+    print('\nprocess_response', response)
 
-        print("Invoking Agent with query: " + query)
-        agent_url = f"https://bedrock-agent-runtime.{region}.amazonaws.com/agents/{
-            agentId}/agentAliases/{agentAliasId}/sessions/{sessionId}/text"
-        requester = SigV4HttpRequester()
-        response = requester.send_signed_request(
-            url=agent_url,
-            method='POST',
-            service='bedrock',
-            headers={
-                'content-type': 'application/json',
-                'accept': 'application/json'
-            },
-            region=region,
-            body=json.dumps(agent_query)
-        )
+    completion = ''
+    return_control_invocation_results = []
 
-        if response.status_code == 200:
-            response_string = response.text
+    for event in response.get('completion'):
 
-            split_response = response_string.split(":message-type")
+        if 'returnControl' in event:
+            return_control = event['returnControl']
+            print('\n- returnControl', return_control)
+            invocation_id = return_control['invocationId']
+            invocation_inputs = return_control['invocationInputs']
 
-            last_response = split_response[-2]
-            # print(last_response)
+            for invocation_input in invocation_inputs:
+                function_invocation_input = invocation_input['functionInvocationInput']
+                action_group = function_invocation_input['actionGroup']
+                function = function_invocation_input['function']
+                parameters = function_invocation_input['parameters']
+                if action_group == 'retrieve-customer-settings' and function == 'retrieve-customer-settings-from-crm':
+                    return_control_invocation_results.append({
+                        'functionResult': {
+                            'actionGroup': action_group,
+                            'function': function,
+                            'responseBody': {
+                                'TEXT': {
+                                    # Simulated API
+                                    'body': '{ "customer id": 12345 }'
+                                }
+                            }
+                        }}
+                    )
 
-            try:
-                encoded_last_response = last_response.split("\"")[3]
-                print(encoded_last_response)
-                if encoded_last_response == "citations":
-                    # Find the start and end indices of the JSON content
-                    start_index = last_response.find('{')
-                    end_index = last_response.rfind('}')
+        elif 'chunk' in event:
+            chunk = event["chunk"]
+            print('\n- chunk', chunk)
+            completion = completion + chunk["bytes"].decode()
 
-                    # Extract the JSON content
-                    json_content = last_response[start_index:end_index + 1]
+        elif 'trace' in event:
+            trace = event["trace"]
+            print('\n- trace', trace)
 
-                    try:
-                        data = json.loads(json_content)
-                        # print(data)
-                        final_response = data['trace']['orchestrationTrace']['observation']['finalResponse']['text']
-                    except json.decoder.JSONDecodeError as e:
-                        print(f"JSON decoding error: {e}")
-                    except KeyError as e:
-                        print(f"KeyError: {e}")
-                else:
-                    decoded = base64.b64decode(encoded_last_response)
-                    final_response = decoded.decode('utf-8')
-            except base64.binascii.Error as e:
-                print(f"Base64 decoding error: {e}")
-                final_response = last_response  # Or assign a default value
+        else:
+            print('\nevent', event)
 
-        print("Agent Response: " + final_response)
-        return final_response
+    if len(completion) > 0:
+        print('\ncompletion\n')
+        print(completion)
 
 
 def bedrock(query, sessionId):
     if query is not None:
+
         response = agent_client_runtime.invoke_agent(
             agentId=agentId,
             agentAliasId=agentAliasId,
@@ -141,32 +132,16 @@ def bedrock(query, sessionId):
             enableTrace=True,
             sessionId=sessionId
         )
-        print(response["completion"])
+        # process_response(response)
 
-        # for event in response["completion"]:
-        #     final_response = event.get("trace", {}).get("trace", {}).get("orchestrationTrace", {}).get(
-        #         "observation", {}).get("finalResponse", {}).get("text", "No final response found")
-        #     return final_response
+        agent_response = ""
+        for event in response.get("completion"):
+            if "chunk" in event:
+                chunk = event["chunk"]
+                agent_response = agent_response + chunk["bytes"].decode()
 
-        for event in response["completion"]:
-            if event.get("trace").get("trace").get("orchestrationTrace").get("observation"):
-                if event.get("trace").get("trace").get("orchestrationTrace").get("observation").get("finalResponse"):
-                    return event.get("trace").get("trace").get("orchestrationTrace").get("observation").get("finalResponse").get("text")
-
-        # for event in response["completion"]:
-        #     chunk = event.get("trace")
-        #     if chunk:
-        #         trace = chunk.get("trace")
-        #         if trace:
-        #             # print(trace)
-        #             orches = trace.get("orchestrationTrace")
-        #             if orches:
-        #                 # print(orches)
-        #                 obs = orches.get("observation")
-        #                 if obs:
-        #                     final = obs.get("finalResponse")
-        #                     if final:
-        #                         return final.get("text")
+        if agent_response is not None:
+            return agent_response
 
 
 def update_knowledge_base(file_content, bucket_name, s3_file_name):
