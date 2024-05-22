@@ -1,0 +1,82 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0",
+    "description": "Check if a number is a prime number or not"
+  },
+  "servers": [{ "url": "/prod" }],
+  "paths": {
+    "/prime/{number}": {
+      "get": {
+        "summary": "Check if a number is a prime number or not",
+        "description": "Check if a number is a prime number or not",
+        "operationId": "prime_prime__number__get",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "description": "Number to check",
+            "required": true,
+            "schema": { "type": "integer", "title": "Number" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the check if the number is prime or not",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "boolean",
+                      "description": "If the number is a prime number, the result be True, if the number is not a prime the result will be False"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

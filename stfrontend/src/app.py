@@ -5,6 +5,7 @@ import io
 import time
 import random
 import string
+import json
 
 dorje_logo = "./Dorje logo.svg"
 
@@ -252,6 +253,7 @@ class AnalyseInvoice:
                 # st.write("Uploaded file:", uploaded_file.name)
 
                 print("Uploading new invoice")
+                st.session_state.session_id = session_generator()
                 self.delete_previous_invoice()
                 file_contents = self.process_uploaded_file()
                 self.update_knowledge_base(file_contents)
