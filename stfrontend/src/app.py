@@ -196,7 +196,7 @@ class AnalyseInvoice:
     def delete_previous_invoice(self):
         print("deleting previous invoice")
         objects_to_delete = s3_client.list_objects_v2(
-            Bucket=knowledge_base_s3_bucket)
+            Bucket=knowledge_base_s3_bucket, Prefix="agent/knowledge-base-assets/invoices/")
         if 'Contents' in objects_to_delete:
             for object in objects_to_delete['Contents']:
                 print("file to be deleted :" + object['Key'])

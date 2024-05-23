@@ -1,0 +1,3 @@
+account payable policy are:
+If invoice amount is less than $1000, auto approve.
+If invoice amount is greater than or equal to $1000, manual approve.

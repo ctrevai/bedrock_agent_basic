@@ -1,37 +1,44 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.0",
   "info": {
-    "title": "FastAPI",
+    "title": "Prime number checker",
     "version": "0.1.0",
     "description": "Check if a number is a prime number or not"
   },
-  "servers": [{ "url": "/prod" }],
+  "servers": [
+    {
+      "url": "/prod"
+    }
+  ],
   "paths": {
-    "/prime/{number}": {
+    "/prime/": {
       "get": {
-        "summary": "Check if a number is a prime number or not",
+        "summary": "Check if a number is a prime number or not and return true or false as a result",
         "description": "Check if a number is a prime number or not",
-        "operationId": "prime_prime__number__get",
+        "operationId": "prime_prime__get",
         "parameters": [
           {
             "name": "number",
-            "in": "path",
-            "description": "Number to check",
+            "in": "query",
             "required": true,
-            "schema": { "type": "integer", "title": "Number" }
+            "description": "Number to check if it is a prime number or not",
+            "schema": {
+              "type": "integer",
+              "title": "Number"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Result of the check if the number is prime or not",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "result": {
+                    "isPrime": {
                       "type": "boolean",
-                      "description": "If the number is a prime number, the result be True, if the number is not a prime the result will be False"
+                      "description": "Check result, True when number is a prime number, False when number is not a prime number"
                     }
                   }
                 }
@@ -42,7 +49,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -55,7 +64,9 @@
       "HTTPValidationError": {
         "properties": {
           "detail": {
-            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
             "type": "array",
             "title": "Detail"
           }
@@ -66,12 +77,27 @@
       "ValidationError": {
         "properties": {
           "loc": {
-            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
             "type": "array",
             "title": "Location"
           },
-          "msg": { "type": "string", "title": "Message" },
-          "type": { "type": "string", "title": "Error Type" }
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
         },
         "type": "object",
         "required": ["loc", "msg", "type"],
