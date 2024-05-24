@@ -25,8 +25,8 @@ agent_client_runtime = session.client('bedrock-agent-runtime')
 approval_query = ''' 
 
 account payable policy are:
-If invoice amount is less than $999, auto approve.
-If invoice amount is greater than $1000, manual approve.
+If invoice amount is less than $1000, auto approve.
+If invoice amount is greater or equal to $1000, manual approve.
 question:
 is this invoice get auto approve or manual approve?
 
@@ -234,8 +234,11 @@ class AnalyseInvoice:
 
         if st.button("Check Invoice Qualification"):
             sessionId = st.session_state["session_id"]
-            agent_response = bedrock(approval_query, sessionId)
-            st.session_state["previous_query"] = query
+            if st.session_state["analyse_complete"]:
+                agent_response = bedrock(approval_query, sessionId)
+                st.session_state["previous_query"] = query
+            else:
+                st.write("Please upload invoice first")
 
         if agent_response is not None:
             printable = agent_response.replace("$", "\$")
@@ -250,6 +253,7 @@ class AnalyseInvoice:
 
             if uploaded_file != st.session_state.uploaded_file:
                 st.session_state.uploaded_file = uploaded_file
+                st.session_state.analyse_complete = True
                 # st.write("Uploaded file:", uploaded_file.name)
 
                 print("Uploading new invoice")
@@ -283,6 +287,7 @@ class AnalyseInvoice:
 
         if "session_id" not in st.session_state:
             st.session_state["session_id"] = session_generator()
+            self.delete_previous_invoice()
 
         if "previous_query" not in st.session_state:
             st.session_state["previous_query"] = ""
