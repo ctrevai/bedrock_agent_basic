@@ -146,7 +146,7 @@ def check_ingestion_job_status():
         except Exception as e:
             st.write(f"An error occurred: {e}")
         with st.spinner('Wait for Ingestion Job to Complete'):
-            time.sleep(10)  # Poll every 4 seconds (adjust as needed)
+            time.sleep(20)  # Poll every 4 seconds (adjust as needed)
 
 
 def show_pdf(uploaded_file):
